@@ -1,5 +1,8 @@
+import pandas as pd
+import numpy as np
 from binance.client import Client
 from .api_secrets import API_KEY, API_SECRET
+
 
 class ApiClient:
 
@@ -30,6 +33,14 @@ class ApiClient:
     def get_candles(self, symbol='ETHUSDT', interval='1m'):
         klines = self._client.get_klines(symbol=symbol, interval=interval, limit=500)
         return [BinanceCandleStick(a[1], a[2], a[3], a[4]) for a in klines]
+
+    def get_close_prices_dataframe(self, symbol='ETHUSDT', interval='1m'):
+        klines = self._client.get_klines(symbol=symbol, interval=interval, limit=500)
+        close_arr = [float(a[4]) for a in klines]
+        np_arr = np.array(close_arr)
+        data = {'Close': pd.Series(np_arr)}
+        return pd.DataFrame(data)
+
 
 
 class BinanceCandleStick:
