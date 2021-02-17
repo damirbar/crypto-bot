@@ -24,8 +24,23 @@ class ApiClient:
             balance['balances']))
         return my_balance
 
+    def get_current_price(self, symbol):
+        return float(self._client.get_symbol_ticker(symbol=symbol)['price'])
+
+    def get_candles(self, symbol='ETHUSDT', interval='1m'):
+        klines = self._client.get_klines(symbol=symbol, interval=interval, limit=500)
+        return [BinanceCandleStick(a[1], a[2], a[3], a[4]) for a in klines]
 
 
+class BinanceCandleStick:
+    def __init__(self, open, high, low, close):
+        self.open  = open
+        self.high  = high
+        self.low   = low
+        self.close = close
+
+    def __repr__(self):
+        return f'<Open: {self.open}, High: {self.high}, Low: {self.low}, Close: {self.close}>'
 
 
 
