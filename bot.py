@@ -19,6 +19,44 @@ def visualize(df):
     fig.show()
 
 
+def bollinger_bands_example(close_prices):
+    bb = BollingerBands(close_prices)
+    bb.std_spacing = 1.96
+    bb.initialize_indicator()
+    bb_dataframe = bb.dataframe.dropna()
+    print(bb_dataframe)
+
+    bought = False
+
+    init_money = 100
+
+    money = init_money
+    crypto_amount = 0
+    for i, entry in bb_dataframe.iterrows():
+        if entry['Close'] < entry['Lower Band']:
+            if not bought:
+                print(f"Start buying from price {entry['Close']}")
+                bought = True
+            if money > 0:
+                crypto_amount = money / entry['Close']
+                money = 0
+                print(f"Buy at index {i}, price {entry['Close']}, Lower Band {entry['Lower Band']}")
+        if entry['Close'] > entry['Upper Band']:
+            if crypto_amount > 0:
+                money = entry['Close'] * crypto_amount
+                crypto_amount = 0
+                print(f"Sell at index {i}, price {entry['Close']}, Upper Band {entry['Upper Band']}")
+        i += 1
+
+    if money > 0:
+        print(f"Started with {init_money} and finished with {money}")
+    else:
+        print(f"Started with {init_money} and finished with {crypto_amount * bb_dataframe['Close'].iloc[-1]}")
+
+    visualize(bb_dataframe)
+
+
+
 def main():
     
     client = ApiClient()
@@ -42,12 +80,7 @@ def main():
     close_prices = client.get_close_prices_dataframe(symbol='ETHUSDT', interval='1m')
     print(close_prices)
 
-    bb = BollingerBands(close_prices)
-    bb.initialize_indicator()
-    bb_dataframe = bb.dataframe.dropna()
-    print(bb_dataframe)
-
-    visualize(bb_dataframe)
+    bollinger_bands_example(close_prices)
 
 
 if __name__ == '__main__':

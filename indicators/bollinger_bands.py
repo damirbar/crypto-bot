@@ -37,9 +37,22 @@ class BollingerBands(TradingIndicator):
             print("No dataframe provided")
             return
         self._dataframe['Middle Band'] = self._dataframe['Close'].rolling(window=self.sessions_back).mean()
-        self._dataframe['Lower Band']  = self._dataframe['Middle Band'] - 1.96 * self._dataframe['Close'].rolling(window=self.sessions_back).std()
-        self._dataframe['Upper Band']  = self._dataframe['Middle Band'] + 1.96 * self._dataframe['Close'].rolling(window=self.sessions_back).std()
+        self._dataframe['Lower Band']  = self._dataframe['Middle Band'] - self._std_spacing * self._dataframe['Close']\
+            .rolling(window=self.sessions_back).std()
+        self._dataframe['Upper Band']  = self._dataframe['Middle Band'] + self._std_spacing * self._dataframe['Close']\
+            .rolling(window=self.sessions_back).std()
 
     @property
     def dataframe(self):
         return self._dataframe
+
+
+
+class BollingerStrategy:
+
+    def __init__(self, df):
+        self._dataframe = df
+
+    def insert_new_price(self, candle):
+        pass
+
