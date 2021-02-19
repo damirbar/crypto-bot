@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from api_connection.api_client import ApiClient
-from indicators.bollinger_bands import BollingerBands
+from indicators.bollinger_bands import BollingerBands, BollingerStrategy
 import plotly.graph_objs as go
 
 
@@ -17,6 +17,18 @@ def visualize(df):
         yaxis_title='Price'
     )
     fig.show()
+
+
+def bollinger_bands_strategy_example(close_prices):
+    bb = BollingerBands(close_prices)
+    bb.std_spacing = 1.96
+    bb.initialize_indicator()
+    bb_dataframe = bb.dataframe.dropna()
+    print(bb_dataframe)
+
+    bb_start = BollingerStrategy(bb_dataframe)
+
+    print(bb_start.action_expedience())
 
 
 def bollinger_bands_example(close_prices):
@@ -56,8 +68,14 @@ def bollinger_bands_example(close_prices):
     visualize(bb_dataframe)
 
 
-
 def main():
+    client = ApiClient()
+    client.connect()
+    close_prices = client.get_close_prices_dataframe(symbol='ETHUSDT', interval='1m')
+    bollinger_bands_strategy_example(close_prices)
+
+
+def main2():
     
     client = ApiClient()
     client.connect()
@@ -80,7 +98,11 @@ def main():
     close_prices = client.get_close_prices_dataframe(symbol='ETHUSDT', interval='1m')
     print(close_prices)
 
-    bollinger_bands_example(close_prices)
+    # bollinger_bands_example(close_prices)
+
+    # print(f"One candle: {client.get_candles(symbol='ETHUSDT', interval='1m', limit=1)[0]}")
+
+    bollinger_bands_strategy_example(close_prices)
 
 
 if __name__ == '__main__':

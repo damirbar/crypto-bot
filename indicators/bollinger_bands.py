@@ -54,5 +54,39 @@ class BollingerStrategy:
         self._dataframe = df
 
     def insert_new_price(self, candle):
-        pass
+        self._dataframe.append({'Open': candle['Open'],
+                        'High': candle['High'],
+                        'Low': candle['Low'],
+                        'Close': candle['Close']})
 
+    def action_expedience(self):
+        last_price  = self._dataframe.iloc[-1]
+        close_price = last_price['Close']
+        upper_band = last_price['Upper Band']
+        middle_band = last_price['Middle Band']
+        lower_band = last_price['Lower Band']
+
+        print(f"Current price: {close_price}, Upper band: {upper_band}, Middle band: {middle_band}, Lower band: {lower_band}")
+
+        ret = {'buy': 0, 'sell': 0}
+        if close_price < middle_band:
+            close_low_dist = close_price - lower_band
+            # Strong buy
+            if close_low_dist < 0:
+                ret['buy'] = 1
+                return ret
+
+            mid_low_dist = middle_band - lower_band
+            ret['buy'] = (mid_low_dist - close_low_dist) / mid_low_dist
+
+        elif close_price > middle_band:
+            close_up_dist = close_price - upper_band
+            # Strong sell
+            if close_up_dist > 0:
+                ret['sell'] = 1
+                return ret
+
+            mid_up_dist = middle_band - upper_band
+            ret['sell'] = (mid_up_dist - close_up_dist) / mid_up_dist
+
+        return ret

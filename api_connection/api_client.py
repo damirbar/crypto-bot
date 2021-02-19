@@ -1,3 +1,4 @@
+import threading
 import pandas as pd
 import numpy as np
 from binance.client import Client
@@ -8,6 +9,7 @@ class ApiClient:
 
     def __init__(self):
         self._client = None
+        self._lock = threading.Lock()
 
     def connect(self):
         self._client = Client(API_KEY, API_SECRET)
@@ -30,25 +32,26 @@ class ApiClient:
     def get_current_price(self, symbol):
         return float(self._client.get_symbol_ticker(symbol=symbol)['price'])
 
-    def get_candles(self, symbol='ETHUSDT', interval='1m'):
-        klines = self._client.get_klines(symbol=symbol, interval=interval, limit=500)
+    def get_candles(self, symbol='ETHUSDT', interval='1m', limit=500):
+        klines = self._client.get_klines(symbol=symbol, interval=interval, limit=limit)
         return [BinanceCandleStick(a[1], a[2], a[3], a[4]) for a in klines]
 
-    def get_close_prices_dataframe(self, symbol='ETHUSDT', interval='1m'):
-        klines = self._client.get_klines(symbol=symbol, interval=interval, limit=500)
-        close_arr = [float(a[4]) for a in klines]
-        np_arr = np.array(close_arr)
-        data = {'Close': pd.Series(np_arr)}
-        return pd.DataFrame(data)
+    def get_close_prices_dataframe(self, symbol='ETHUSDT', interval='1m', limit=500):
+        with self._lock:
+            klines = self._client.get_klines(symbol=symbol, interval=interval, limit=limit)
+            close_arr = [float(a[4]) for a in klines]
+            np_arr = np.array(close_arr)
+            data = {'Close': pd.Series(np_arr)}
+            return pd.DataFrame(data)
 
 
 
 class BinanceCandleStick:
-    def __init__(self, open, high, low, close):
-        self.open  = open
-        self.high  = high
-        self.low   = low
-        self.close = close
+    def __init__(self, open_price, high_price, low_price, close_price):
+        self.open  = open_price
+        self.high  = high_price
+        self.low   = low_price
+        self.close = close_price
 
     def __repr__(self):
         return f'<Open: {self.open}, High: {self.high}, Low: {self.low}, Close: {self.close}>'
