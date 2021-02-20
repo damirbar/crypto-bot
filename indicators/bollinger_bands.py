@@ -46,18 +46,10 @@ class BollingerBands(TradingIndicator):
     def dataframe(self):
         return self._dataframe
 
-
-
-class BollingerStrategy:
-
-    def __init__(self, df):
+    @dataframe.setter
+    def dataframe(self, df):
         self._dataframe = df
-
-    def insert_new_price(self, candle):
-        self._dataframe.append({'Open': candle['Open'],
-                        'High': candle['High'],
-                        'Low': candle['Low'],
-                        'Close': candle['Close']})
+        self.initialize_indicator()
 
     def action_expedience(self):
         last_price  = self._dataframe.iloc[-1]
@@ -90,3 +82,5 @@ class BollingerStrategy:
             ret['sell'] = (mid_up_dist - close_up_dist) / mid_up_dist
 
         return ret
+
+

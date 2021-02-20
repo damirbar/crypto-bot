@@ -14,3 +14,9 @@ class TradingIndicator:
 
     def initialize_indicator(self):
         pass
+
+    def action_expedience(self):
+        """
+        :return: dictionary of expedience - buy or sale, each in range [0,1]. One of the will always be zero.
+        """
+        raise NotImplementedError

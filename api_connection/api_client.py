@@ -34,7 +34,17 @@ class ApiClient:
 
     def get_candles(self, symbol='ETHUSDT', interval='1m', limit=500):
         klines = self._client.get_klines(symbol=symbol, interval=interval, limit=limit)
-        return [BinanceCandleStick(a[1], a[2], a[3], a[4]) for a in klines]
+        return [BinanceCandleStick(a[1], a[2], a[3], a[4], a[5], a[8]) for a in klines]
+
+    def get_candles_dataframe(self, symbol='ETHUSDT', interval='1m', limit=500):
+        klines = self._client.get_klines(symbol=symbol, interval=interval, limit=limit)
+        arr = []
+        for candle in klines:
+            obj = {'Open': float(candle[1]), 'High': float(candle[2]), 'Low': float(candle[3]),
+                   'Close': float(candle[4]), 'Volume': candle[5], 'Number Of Trades': candle[8]}
+            arr.append(obj)
+        return pd.DataFrame(arr)
+
 
     def get_close_prices_dataframe(self, symbol='ETHUSDT', interval='1m', limit=500):
         with self._lock:
@@ -47,14 +57,17 @@ class ApiClient:
 
 
 class BinanceCandleStick:
-    def __init__(self, open_price, high_price, low_price, close_price):
-        self.open  = open_price
-        self.high  = high_price
-        self.low   = low_price
-        self.close = close_price
+    def __init__(self, open_price, high_price, low_price, close_price, volume, num_of_trades):
+        self.open          = open_price
+        self.high          = high_price
+        self.low           = low_price
+        self.close         = close_price
+        self.volume        = volume
+        self.num_of_trades = num_of_trades
 
     def __repr__(self):
-        return f'<Open: {self.open}, High: {self.high}, Low: {self.low}, Close: {self.close}>'
+        return f'<Open: {self.open}, High: {self.high}, Low: {self.low}, Close: {self.close}, Volume: {self.volume},' \
+               f' Number of trades: {self.num_of_trades}>'
 
 
 
