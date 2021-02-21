@@ -70,9 +70,12 @@ def bollinger_bands_example(close_prices, plot=True):
 def main():
     client = ApiClient()
     client.connect()
-    dataframe = client.get_candles_dataframe(symbol='ETHUSDT', interval='1m')[['Close', 'Volume']]
-    print(dataframe.head())
-    bollinger_bands_strategy_example(dataframe)
+    # dataframe = client.get_candles_dataframe(symbol='ETHUSDT', interval='1m')[['Close', 'Volume']]
+    # print(dataframe.head())
+    # bollinger_bands_strategy_example(dataframe)
+    print(client.get_raw_client().get_orderbook_ticker(symbol='ETHUSDT'))
+
+    print(client.market_buy('ETHUSDT', 0.1))
 
 
 def main2():

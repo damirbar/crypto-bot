@@ -1,7 +1,10 @@
 import threading
+import time
+
 import pandas as pd
 import numpy as np
 from binance.client import Client
+from binance.exceptions import BinanceAPIException
 from .api_secrets import API_KEY, API_SECRET
 
 
@@ -10,6 +13,7 @@ class ApiClient:
     def __init__(self):
         self._client = None
         self._lock = threading.Lock()
+        self._orders_since_run = []
 
     def connect(self):
         self._client = Client(API_KEY, API_SECRET)
@@ -54,6 +58,54 @@ class ApiClient:
             data = {'Close': pd.Series(np_arr)}
             return pd.DataFrame(data)
 
+    def get_all_orders(self, symbol='ETHUSDT'):
+        return self._client.get_all_orders(symbol=symbol)
+
+    def market_buy(self, symbol=None, quantity=None):
+        if symbol is None or quantity is None:
+            raise ValueError("You MUST pass symbol and quantity. Be careful with this method!")
+
+        api_res = None
+        try:
+            api_res = self._client.order_market_buy(symbol=symbol, quantity=quantity)
+            print(f"API result: {api_res}")
+        except BinanceAPIException as e:
+            print(f"Binance error: {e} - Error code: - {e.code}")
+            if e.code == -2010: # Account has insufficient balance for requested action
+                print("No money.")
+                return False
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+        order_recorded = False
+        order_status = None
+        while not order_recorded:
+            try:
+                time.sleep(2)
+                order_status = self._client.get_order(symbol=symbol, orderId=api_res['orderId'])
+            except BinanceAPIException as e:
+                print(e)
+                time.sleep(5)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+
+        if order_status is None:
+            print("Order status is None!")
+            return False
+
+        while order_status['status'] != 'FILLED':
+            try:
+                order_status = self._client.get_order(symbol=symbol, orderId=api_res['orderId'])
+                time.sleep(1)
+            except BinanceAPIException as e:
+                print(e)
+                time.sleep(2)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+
+        print(f"Buy order for {quantity} {symbol} filled")
+
+        return api_res
 
 
 class BinanceCandleStick:
