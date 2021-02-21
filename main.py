@@ -29,7 +29,7 @@ def bollinger_bands_strategy_example(dataframe):
     print(bb.action_expedience())
 
 
-def bollinger_bands_example(close_prices):
+def bollinger_bands_example(close_prices, plot=True):
     bb = BollingerBands(close_prices)
     bb.std_spacing = 1.96
     bb.initialize_indicator()
@@ -63,7 +63,8 @@ def bollinger_bands_example(close_prices):
     else:
         print(f"Started with {init_money} and finished with {crypto_amount * bb_dataframe['Close'].iloc[-1]}")
 
-    visualize(bb_dataframe)
+    if plot:
+        visualize(bb_dataframe)
 
 
 def main():
@@ -97,11 +98,11 @@ def main2():
     close_prices = client.get_close_prices_dataframe(symbol='ETHUSDT', interval='1m')
     print(close_prices)
 
-    # bollinger_bands_example(close_prices)
+    bollinger_bands_example(close_prices, plot=False)
 
     # print(f"One candle: {client.get_candles(symbol='ETHUSDT', interval='1m', limit=1)[0]}")
 
-    bollinger_bands_strategy_example(close_prices)
+    # bollinger_bands_strategy_example(close_prices)
 
 
 if __name__ == '__main__':
