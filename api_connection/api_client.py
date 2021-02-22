@@ -1,11 +1,20 @@
 import threading
 import time
+import enum
+from math import isclose
 
 import pandas as pd
 import numpy as np
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
 from .api_secrets import API_KEY, API_SECRET
+
+
+class OrderType(enum.Enum):
+    MARKET_BUY  = 1
+    MARKET_SELL = 2
+    BUY_LIMIT   = 3
+    SELL_LIMIT  = 4
 
 
 class ApiClient:
@@ -61,10 +70,39 @@ class ApiClient:
     def get_all_orders(self, symbol='ETHUSDT'):
         return self._client.get_all_orders(symbol=symbol)
 
-    def market_buy(self, symbol=None, quantity=None):
-        if symbol is None or quantity is None:
-            raise ValueError("You MUST pass symbol and quantity. Be careful with this method!")
+    def verify_limit_order(self, symbol, order_id):
+        print(f"Verifying order ID {order_id}")
+        order_recorded = False
+        order_status = None
+        while not order_recorded:
+            try:
+                time.sleep(2)
+                order_status = self._client.get_order(symbol=symbol, orderId=order_id)
+            except BinanceAPIException as e:
+                print(f"get_order failed: {e}")
+                time.sleep(5)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                return False
 
+        if order_status is None:
+            print("Order status is None!")
+            return False
+
+        while order_status['status'] != 'FILLED':
+            try:
+                order_status = self._client.get_order(symbol=symbol, orderId=order_id)
+                time.sleep(1)
+            except BinanceAPIException as e:
+                print(e)
+                time.sleep(2)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                return False
+
+        return True
+
+    def _execute_market_buy(self, symbol, quantity):
         api_res = None
         try:
             api_res = self._client.order_market_buy(symbol=symbol, quantity=quantity)
@@ -77,33 +115,77 @@ class ApiClient:
         except Exception as e:
             print(f"Unexpected error: {e}")
 
-        order_recorded = False
-        order_status = None
-        while not order_recorded:
-            try:
-                time.sleep(2)
-                order_status = self._client.get_order(symbol=symbol, orderId=api_res['orderId'])
-            except BinanceAPIException as e:
-                print(e)
-                time.sleep(5)
-            except Exception as e:
-                print(f"Unexpected error: {e}")
+        return api_res
 
-        if order_status is None:
-            print("Order status is None!")
+    def _execute_market_sell(self, symbol, quantity):
+        api_res = None
+        try:
+            api_res = self._client.order_market_sell(symbol=symbol, quantity=quantity)
+            print(f"API result: {api_res}")
+        except BinanceAPIException as e:
+            print(f"Binance error: {e} - Error code: - {e.code}")
+            if e.code == -2010: # Account has insufficient balance for requested action
+                print("No money.")
+                return False
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+        return api_res
+
+    def market_sell(self, symbol=None, quantity=None):
+        if symbol is None or quantity is None:
+            raise ValueError("You MUST pass symbol and quantity. Be careful with this method!")
+
+        current_balance = self.get_asset_balance(asset=symbol.replace('USDT', ''))['free']
+        print(f"Starting balance: {current_balance} {symbol}")
+
+        if float(current_balance) < quantity:
+            print(f"Cannot sell {quantity} when there is only {current_balance} available")
             return False
 
-        while order_status['status'] != 'FILLED':
-            try:
-                order_status = self._client.get_order(symbol=symbol, orderId=api_res['orderId'])
-                time.sleep(1)
-            except BinanceAPIException as e:
-                print(e)
-                time.sleep(2)
-            except Exception as e:
-                print(f"Unexpected error: {e}")
+        api_res = self._execute_market_sell(symbol, quantity)
 
-        print(f"Buy order for {quantity} {symbol} filled")
+        if not api_res:
+            print("Error sending market sell")
+            return False
+
+        print(f"Sell order for {quantity} {symbol} filled. Order ID: {api_res['orderId']}")
+
+        after_sell_balance = self.get_asset_balance(asset=symbol.replace('USDT', ''))['free']
+        print(f"Balance after sell order: {after_sell_balance} {symbol}")
+
+        if isclose(float(current_balance) - quantity, float(after_sell_balance), abs_tol=1):
+            print("Market sel order success")
+
+        return api_res
+
+
+    def market_buy(self, symbol=None, quantity=None):
+        if symbol is None or quantity is None:
+            raise ValueError("You MUST pass symbol and quantity. Be careful with this method!")
+
+        current_balance = self.get_asset_balance(asset=symbol.replace('USDT', ''))['free']
+        print(f"Starting balance: {current_balance} {symbol}")
+
+        api_res = self._execute_market_buy(symbol, quantity)
+
+        if not api_res:
+            print("Error sending market buy")
+            return False
+
+        # print("Verifying market buy order")
+        # order_verified = self.verify_order(symbol, api_res['orderId'])
+        # if not order_verified:
+        #     print(f"Order {api_res['orderId']} verification failed")
+        # else:
+        #     print(f"Buy order for {quantity} {symbol} filled. Order ID: {api_res['orderId']}")
+        print(f"Buy order for {quantity} {symbol} filled. Order ID: {api_res['orderId']}")
+
+        after_buy_balance = self.get_asset_balance(asset=symbol.replace('USDT', ''))['free']
+        print(f"Balance after buy order: {after_buy_balance} {symbol}")
+
+        if isclose(float(current_balance) + quantity, float(after_buy_balance), abs_tol=1):
+            print("Market buy order success")
 
         return api_res
 

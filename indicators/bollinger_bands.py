@@ -6,7 +6,7 @@ from .indicator import TradingIndicator
 
 class BollingerBands(TradingIndicator):
 
-    def __init__(self, dataframe):
+    def __init__(self, dataframe=None):
         super().__init__()
 
         self._std_spacing   = 1.96
