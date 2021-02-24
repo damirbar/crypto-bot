@@ -18,6 +18,8 @@ class TraderBot:
 
         self._check_price_function = None
 
+        self._notify_action_function = None
+
         self._from_coin = None
         self._to_crypto = None
         self.trading_symbol = None
@@ -102,6 +104,10 @@ class TraderBot:
         print("Setting the check-price function")
         self._check_price_function = func
 
+    def notify_action_function(self, func):
+        print("Setting the notify function")
+        self._notify_action_function = func
+
     def act_and_loop(self):
 
         iteration = 0
@@ -121,16 +127,17 @@ class TraderBot:
             print(log_str)
 
             if bb_exp['buy'] > 0.9 and coin_balance >= 10:
-                amount_to_buy = 0
                 if crypto_worth < 1:
                     amount_to_buy = int(coin_balance/crypto_worth)
                 else:
                     amount_to_buy = round(coin_balance/crypto_worth, 3)
                 print(f"Attempt to buy {amount_to_buy} {self.trading_symbol}")
+                self._notify_action_function(f"Buying {self._to_crypto} at price {crypto_worth}")
                 self._market_buy_function(self.trading_symbol, amount_to_buy)
 
             elif bb_exp['sell'] > 0.9 and crypto_balance * crypto_worth >= 10:
                 print(f"Attempt to buy {crypto_balance} {self.trading_symbol}")
+                self._notify_action_function(f"Selling {self._to_crypto} at price {crypto_worth}")
                 self._market_sell_function(self.trading_symbol, round(crypto_balance, 3))
 
             time.sleep(10)
