@@ -143,7 +143,13 @@ class ApiClient:
             print(f"Cannot sell {quantity} when there is only {current_balance} available")
             return False
 
-        api_res = self._execute_market_sell(symbol, quantity)
+        api_res = False
+        for i in range(5):
+            api_res = self._execute_market_sell(symbol, quantity)
+            if api_res:
+                break
+            else:
+                print(f"Market sell failed. Attempt number {i+1}")
 
         if not api_res:
             print("Error sending market sell")
@@ -155,7 +161,7 @@ class ApiClient:
         print(f"Balance after sell order: {after_sell_balance} {symbol}")
 
         if isclose(float(current_balance) - quantity, float(after_sell_balance), abs_tol=1):
-            print("Market sel order success")
+            print("Market sell order success")
 
         return api_res
 
@@ -167,7 +173,13 @@ class ApiClient:
         current_balance = self.get_asset_balance(asset=symbol.replace('USDT', ''))['free']
         print(f"Starting balance: {current_balance} {symbol}")
 
-        api_res = self._execute_market_buy(symbol, quantity)
+        api_res = False
+        for i in range(5):
+            api_res = self._execute_market_buy(symbol, quantity)
+            if api_res:
+                break
+            else:
+                print(f"Market buy failed. Attempt number {i+1}")
 
         if not api_res:
             print("Error sending market buy")
